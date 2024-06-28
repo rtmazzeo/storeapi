@@ -16,7 +16,11 @@ class ProductUsecase:
 
     async def create(self, body: ProductIn) -> ProductOut:
         product_model = ProductModel(**body.model_dump())
-        await self.collection.insert_one(product_model.model_dump())
+
+        try:
+            await self.collection.insert_one(product_model.model_dump())
+        except pymongo.errors.DuplicateKeyError:
+            raise InsertError(message="Produto com ID duplicado.")
 
         return ProductOut(**product_model.model_dump())
 
