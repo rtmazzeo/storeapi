@@ -1,6 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from pydantic import UUID4
+from fastapi.responses import JSONResponse
 
 from store.schemas.product import ProductIn, ProductOut, ProductUpdate, ProductUpdateOut
 from store.usecases.product import ProductUsecase, NotFoundError
@@ -33,21 +34,27 @@ async def query(usecase: ProductUsecase = Depends()) -> List[ProductOut]:
 
 @router.patch(path="/{id}", status_code=status.HTTP_200_OK)
 async def patch(
-    id: UUID4 = Path(alias="id"),
-    body: ProductUpdate = Body(...),
-    usecase: ProductUsecase = Depends(),
+  id: UUID = Path(alias="id"),
+  body: ProductUpdate = Body(...),
+  usecase: ProductUsecase = Depends(),
 ) -> ProductUpdateOut:
-    try:
-        return await usecase.update(id=id, body=body)
-    except NotFoundException as exc:  # Ou apenas NotFound, se você mudou o nome
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message)
+  try:
+    return await usecase.update(id=id, body=body)
+  except NotFoundError as e:
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"message": str(e)}  
+    )
 
 
 @router.delete(path="/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete(
-    id: UUID4 = Path(alias="id"), usecase: ProductUsecase = Depends()
+  id: UUID = Path(alias="id"), usecase: ProductUsecase = Depends()
 ) -> None:
-    try:
-        await usecase.delete(id=id)
-    except NotFoundException as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message)
+  try:
+    await usecase.delete(id=id)
+  except NotFoundError as e:
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"message": str(e)}  
+    )
