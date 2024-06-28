@@ -12,6 +12,9 @@ class BaseException(Exception):
 
         super().__init__(self.message)
 
+    def __str__(self) -> str:
+        return f"{self.status_code}: {self.message}"
+
 
 class NotFound(BaseException):
     """Exceção lançada quando um recurso não é encontrado."""
