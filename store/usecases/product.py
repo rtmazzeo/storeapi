@@ -41,7 +41,10 @@ class ProductUsecase:
             update={"$set": body.model_dump(exclude_none=True)},
             return_document=pymongo.ReturnDocument.AFTER,
         )
-
+    
+        if not result:  # Verifica se o produto foi encontrado
+            raise NotFoundError(message=f"Product not found with id: {id}")
+    
         return ProductUpdateOut(**result)
 
     async def delete(self, id: UUID) -> bool:
