@@ -2,6 +2,7 @@ from typing import List
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from pydantic import UUID4
 from fastapi.responses import JSONResponse
+from fastapi import Query
 
 from store.schemas.product import ProductIn, ProductOut, ProductUpdate, ProductUpdateOut
 from store.usecases.product import ProductUsecase, NotFoundError
@@ -27,9 +28,18 @@ async def get(id: UUID = Path(alias="id"), usecase: ProductUsecase = Depends()) 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message)
 
 
-@router.get(path="/", status_code=status.HTTP_200_OK)
-async def query(usecase: ProductUsecase = Depends()) -> List[ProductOut]:
-    return await usecase.query()
+@router.get("/", response_model=List[ProductOut])  # Assumindo que você tem um schema ProductOut
+async def get_products(
+    min_price: float = Query(None, ge=0),
+    max_price: float = Query(None, ge=0),
+    product_usecase: ProductUsecase = Depends(),
+):
+    if min_price is not None:
+        min_price = Decimal128(str(min_price))
+    if max_price is not None:
+        max_price = Decimal128(str(max_price))
+
+    return await product_usecase.get_products_by_price_range(min_price, max_price) 
 
 
 @router.patch(path="/{id}", status_code=status.HTTP_200_OK)
