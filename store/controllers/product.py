@@ -3,6 +3,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from pydantic import UUID4
 from fastapi.responses import JSONResponse
 from fastapi import Query
+from bson import Decimal128
 
 from store.schemas.product import ProductIn, ProductOut, ProductUpdate, ProductUpdateOut
 from store.usecases.product import ProductUsecase, NotFoundError
@@ -56,6 +57,18 @@ async def patch(
         content={"message": str(e)}  
     )
 
+async def get_products_by_price_range(self, min_price: Decimal128 = None, max_price: Decimal128 = None) -> List[ProductOut]:
+    query = {}
+    if min_price is not None:
+        query["price"] = {"$gte": min_price}
+    if max_price is not None:
+        query["price"] = {"$lte": max_price}
+
+    if min_price is not None and max_price is not None:
+        query["price"] = {"$gte": min_price, "$lte": max_price}
+
+    products = [ProductOut(**{**item, "price": item["price"].to_decimal()}) async for item in self.collection.find(query)]
+    return products
 
 @router.delete(path="/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete(
